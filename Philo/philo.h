@@ -36,6 +36,7 @@ t_vars	*vars_init(int ac, char **av);
 long	get_time(void);
 void	printf_text(t_philo *philo, t_vars *vars, char *msg);
 int		ft_free(t_vars *vars);
-void	initial_philo(t_vars *vars,int i);
+void	initial_philo(t_vars *vars, int i);
 void	check_if_finished_eating(t_philo *philo, t_vars *vars);
+int		check_arg(int ac, char **av);
 #endif

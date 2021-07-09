@@ -6,42 +6,29 @@
 /*   By: mel-hamr <mel-hamr@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/22 14:45:57 by mel-hamr          #+#    #+#             */
-/*   Updated: 2021/07/03 13:23:03 by mel-hamr         ###   ########.fr       */
+/*   Updated: 2021/07/09 13:33:52 by mel-hamr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Philo_bonus.h"
 
-long	get_time(void)
-{
-	struct timeval	current_time;
-
-	gettimeofday(&current_time, NULL);
-	return ((current_time.tv_sec * 1000) + (current_time.tv_usec / 1000));
-}
-
-void	printf_text(t_vars *vars, t_philo *philo, char *msg)
-{
-	long	time;
-	long	current_time;
-
-	current_time = get_time();
-	time = current_time - vars->start_time;
-	sem_wait(vars->print_sem);
-	printf("%ld\t%d %s \n", time, philo->index, msg);
-	sem_post(vars->print_sem);
-}
-
-void	kill_childs(int *pid, int leng)
+void	kill_childs(t_vars *var)
 {
 	int	i;
 
 	i = 0;
-	while (i < leng)
+	free(var->philo);
+	while (i < var->nbr_philo)
 	{
-		kill(pid[i], SIGKILL);
+		kill(var->pid[i], SIGKILL);
 		i++;
 	}
+	free(var->pid);
+	free(var);
+	sem_unlink(SEMA_FORK);
+	sem_unlink(SEMA_EAT);
+	sem_unlink(SEMA_PRINT);
+	sem_unlink(SEMA_MAIN);
 }
 
 void	*watch_hem_die(void *arg)
@@ -63,18 +50,16 @@ void	*watch_hem_die(void *arg)
 		}
 		if (philo->meal_nbr == vars->nbr_must_eat)
 		{
-			sem_wait(vars->print_sem);
-			printf("simulation over %d\n", philo->index);
-			sem_post(vars->main_sem);
+			if (philo->eated++ == 0)
+				sem_post(vars->eat_sem);
 		}
-		usleep(100);
+		usleep(1000);
 	}
 	return (NULL);
 }
 
-void	routine(int i, int pid, t_vars *vars, t_philo *philo)
+void	routine(t_vars *vars, t_philo *philo)
 {
-	int			time;
 	pthread_t	th;
 
 	philo->time_left_die = get_time() + vars->time_to_die;
@@ -98,54 +83,48 @@ void	routine(int i, int pid, t_vars *vars, t_philo *philo)
 	}
 }
 
-int	main(int ac, char **av)
+void	*check_if_finished(void *arg)
 {
 	t_vars	*vars;
 	int		i;
-	int		pid;
 
-	pid = 1;
-	i = 0;	
-	if (ac < 6 || ac > 5)
-	{
-		vars = (t_vars *)malloc(sizeof(t_vars));
-		vars->nbr_philo = atoi(av[1]);
-		vars->philo = (t_philo *)malloc(sizeof(t_philo) * vars->nbr_philo);
-		vars->time_to_die = atoi(av[2]);
-		vars->time_to_eat = atoi(av[3]);
-		vars->time_to_sleep = atoi(av[4]);
-		vars->start_time = get_time();
-		if (ac == 6)
-			vars->nbr_must_eat = atoi(av[5]);
-		else
-			vars->nbr_must_eat = -1;
-		vars->pid = (int *)malloc(sizeof(int) * vars->nbr_philo);
-		sem_unlink(SEMA_MAIN);
-		vars->main_sem = sem_open(SEMA_MAIN,O_CREAT,644,1);
-		sem_unlink(SEMA_FORK);
-		vars->forks = sem_open(SEMA_FORK,O_CREAT,644,vars->nbr_philo);
-		sem_unlink(SEMA_PRINT);
-		vars->print_sem = sem_open(SEMA_PRINT,O_CREAT,644,1);
-	}
-	sem_wait(vars->main_sem);
+	i = 0;
+	vars = (t_vars *)arg;
 	while (i < vars->nbr_philo)
 	{
-		if (pid != 0)
-		{
-			pid = fork();
-			vars->pid[i] = pid;
-			vars->philo->meal_nbr = 0;
-			vars->philo[i].vars = vars;
-			vars->index = i;
-			vars->philo[i].index = i + 1;
-		}
-		else
-			break;
+		sem_wait(vars->eat_sem);
 		i++;
 	}
+	sem_wait(vars->print_sem);
+	printf("simulation done motherfucker\n");
+	sem_post(vars->main_sem);
+	return (NULL);
+}
+
+int	main(int ac, char **av)
+{
+	t_vars		*vars;
+	int			i;
+	int			pid;
+	pthread_t	th;
+
+	pid = 1;
+	i = -1;
+	if ((check_arg(ac, av) == 1))
+		return (1);
+	vars = (t_vars *)malloc(sizeof(t_vars));
+	intial_vars(av, vars, ac);
+	while (++i < vars->nbr_philo)
+	{
+		if (pid != 0)
+			pid = intial_process(vars, i);
+		else
+			break ;
+	}
 	if (pid == 0)
-		routine(i,pid,vars,&vars->philo[vars->index]);
+		routine(vars, &vars->philo[vars->index]);
+	pthread_create(&th, NULL, &check_if_finished, (void *)vars);
 	sem_wait(vars->main_sem);
-	kill_childs(vars->pid,vars->nbr_philo);
+	kill_childs(vars);
 	return (0);
 }

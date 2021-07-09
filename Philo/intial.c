@@ -6,7 +6,7 @@
 /*   By: mel-hamr <mel-hamr@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/22 13:11:39 by mel-hamr          #+#    #+#             */
-/*   Updated: 2021/07/03 12:40:23 by mel-hamr         ###   ########.fr       */
+/*   Updated: 2021/07/09 15:02:49 by mel-hamr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,35 @@ long	get_time(void)
 
 	gettimeofday(&time, NULL);
 	return ((time.tv_sec * 1000) + (time.tv_usec / 1000));
+}
+
+int	check_arg(int ac, char **av)
+{
+	int	i;
+	int	j;
+
+	j = 0;
+	i = 1;
+	if (ac != 6 && ac != 5)
+	{
+		printf("check argument\n");
+		return (1);
+	}
+	while (i < ac)
+	{
+		j = 0;
+		while (av[i][j])
+		{
+			if (av[i][j] < 48 || av[i][j] > 57)
+			{
+				printf("check argument\n");
+				return (1);
+			}
+			j++;
+		}
+		i++;
+	}
+	return (0);
 }
 
 void	initial_philo(t_vars *vars, int i)

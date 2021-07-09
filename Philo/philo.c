@@ -6,7 +6,7 @@
 /*   By: mel-hamr <mel-hamr@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/22 11:57:08 by mel-hamr          #+#    #+#             */
-/*   Updated: 2021/07/05 17:25:45 by mel-hamr         ###   ########.fr       */
+/*   Updated: 2021/07/09 15:01:40 by mel-hamr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@ void	lock_forks(t_philo *philo, t_vars *vars)
 {
 	pthread_mutex_lock(&vars->fork[philo->index]);
 	printf_text(philo, vars, "take a fork");
-	pthread_mutex_lock(&vars->fork[(philo->index + 1) % vars->nbr_philo]);
+	pthread_mutex_lock(&vars->fork[philo->right_fork]);
 	printf_text(philo, vars, "take a the right fork");
 }
 
@@ -28,6 +28,7 @@ void	*watch_hem_die(void *arg)
 
 	philo = (t_philo *)arg;
 	vars = philo->vars;
+	philo->time_left_die = get_time() + vars->time_to_die;
 	while (1)
 	{
 		time = get_time();
@@ -38,10 +39,8 @@ void	*watch_hem_die(void *arg)
 			pthread_mutex_unlock(&philo->vars->main_mutex);
 		}
 		if (philo->meal_nbr == vars->nbr_must_eat)
-		{
 			check_if_finished_eating(philo, vars);
-		}
-		usleep(500);
+		usleep(1000);
 	}
 	return (NULL);
 }
@@ -63,12 +62,10 @@ void	*simulation(void *arg)
 {
 	t_philo		*philo;
 	t_vars		*vars;
-	long		time;
 	pthread_t	th;
 
 	philo = (t_philo *)arg;
 	vars = philo->vars;
-	philo->time_left_die = get_time() + vars->time_to_die;
 	pthread_create(&th, NULL, &watch_hem_die, philo);
 	pthread_detach(th);
 	while (1)
@@ -85,6 +82,8 @@ int	main(int ac, char **av)
 	int				i;
 	pthread_t		th;
 
+	if ((check_arg(ac, av) == 1))
+		return (1);
 	vars = vars_init(ac, av);
 	i = 0;
 	while (i < vars->nbr_philo)

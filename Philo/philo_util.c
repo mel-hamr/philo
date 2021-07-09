@@ -6,7 +6,7 @@
 /*   By: mel-hamr <mel-hamr@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/22 14:02:13 by mel-hamr          #+#    #+#             */
-/*   Updated: 2021/07/03 12:45:55 by mel-hamr         ###   ########.fr       */
+/*   Updated: 2021/07/06 15:46:17 by mel-hamr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@ void	printf_text(t_philo *philo, t_vars *vars, char *msg)
 
 	time = get_time() - vars->start_time;
 	pthread_mutex_lock(&vars->mutex_print);
-	printf("%ld\t%d %s\n", time, philo->index + 1, msg);
+	printf("%ld\t%d\t%s\n", time, philo->index + 1, msg);
 	pthread_mutex_unlock(&vars->mutex_print);
 }
 
