@@ -6,7 +6,7 @@
 /*   By: mel-hamr <mel-hamr@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/22 11:57:08 by mel-hamr          #+#    #+#             */
-/*   Updated: 2021/07/09 15:01:40 by mel-hamr         ###   ########.fr       */
+/*   Updated: 2021/07/16 17:27:43 by mel-hamr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,9 +15,9 @@
 void	lock_forks(t_philo *philo, t_vars *vars)
 {
 	pthread_mutex_lock(&vars->fork[philo->index]);
-	printf_text(philo, vars, "take a fork");
+	printf_text(philo, vars, "has taken a fork");
 	pthread_mutex_lock(&vars->fork[philo->right_fork]);
-	printf_text(philo, vars, "take a the right fork");
+	printf_text(philo, vars, "has taken a fork");
 }
 
 void	*watch_hem_die(void *arg)
@@ -32,25 +32,28 @@ void	*watch_hem_die(void *arg)
 	while (1)
 	{
 		time = get_time();
-		if (time > philo->time_left_die)
+		pthread_mutex_lock(&philo->mutex);
+		if (time > philo->time_left_die
+			&& philo->meal_nbr != vars->nbr_must_eat)
 		{
 			pthread_mutex_lock(&philo->vars->mutex_print);
-			printf("die %d\n", philo->index + 1);
+			printf("%ld\t%d\tdied\n", (time - vars->start_time), philo->index + 1);
 			pthread_mutex_unlock(&philo->vars->main_mutex);
 		}
-		if (philo->meal_nbr == vars->nbr_must_eat)
-			check_if_finished_eating(philo, vars);
-		usleep(1000);
+		pthread_mutex_unlock(&philo->mutex);
+		usleep(500);
 	}
 	return (NULL);
 }
 
 void	routine(t_philo *philo, t_vars *vars)
 {
+	pthread_mutex_lock(&philo->mutex);
+	philo->meal_nbr++;
 	printf_text(philo, vars, "is eating");
 	philo->time_left_die = get_time() + vars->time_to_die;
 	usleep(vars->time_to_eat * 1000);
-	philo->meal_nbr++;
+	pthread_mutex_unlock(&philo->mutex);
 	pthread_mutex_unlock(&vars->fork[philo->index]);
 	pthread_mutex_unlock(&vars->fork[philo->right_fork]);
 	printf_text(philo, vars, "is sleeping");
@@ -67,6 +70,8 @@ void	*simulation(void *arg)
 	philo = (t_philo *)arg;
 	vars = philo->vars;
 	pthread_create(&th, NULL, &watch_hem_die, philo);
+	pthread_detach(th);
+	pthread_create(&th, NULL, &check_if_finished_eating, arg);
 	pthread_detach(th);
 	while (1)
 	{
@@ -95,7 +100,7 @@ int	main(int ac, char **av)
 	i = 0;
 	while (i < vars->nbr_philo)
 	{
-		pthread_create(&th, NULL, &simulation, &vars->philo[i]);
+		pthread_create(&th, NULL, simulation, &vars->philo[i]);
 		i++;
 		pthread_detach(th);
 		usleep(100);

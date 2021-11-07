@@ -6,7 +6,7 @@
 /*   By: mel-hamr <mel-hamr@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/22 13:11:39 by mel-hamr          #+#    #+#             */
-/*   Updated: 2021/07/09 15:02:49 by mel-hamr         ###   ########.fr       */
+/*   Updated: 2021/07/12 13:58:30 by mel-hamr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,6 +56,7 @@ void	initial_philo(t_vars *vars, int i)
 	vars->philo[i].right_fork = (i + 1) % vars->nbr_philo;
 	vars->philo[i].meal_nbr = 0;
 	vars->philo[i].is_full = 0;
+	pthread_mutex_init(&vars->philo[i].mutex, NULL);
 }
 
 t_vars	*vars_init(int ac, char **av)
@@ -65,10 +66,10 @@ t_vars	*vars_init(int ac, char **av)
 	if (ac < 6 || ac > 5)
 	{
 		vars = (t_vars *)malloc(sizeof(t_vars));
-		vars->nbr_philo = atoi(av[1]);
-		vars->time_to_die = atoi(av[2]);
-		vars->time_to_eat = atoi(av[3]);
-		vars->time_to_sleep = atoi(av[4]);
+		vars->nbr_philo = ft_atoi(av[1], 0);
+		vars->time_to_die = ft_atoi(av[2], 0);
+		vars->time_to_eat = ft_atoi(av[3], 0);
+		vars->time_to_sleep = ft_atoi(av[4], 0);
 		if (ac == 6)
 			vars->nbr_must_eat = atoi(av[5]);
 		else

@@ -1,16 +1,16 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Philo_bonus.c                                      :+:      :+:    :+:   */
+/*   philo_bonus.c                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: mel-hamr <mel-hamr@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/06/22 14:45:57 by mel-hamr          #+#    #+#             */
-/*   Updated: 2021/07/09 13:33:52 by mel-hamr         ###   ########.fr       */
+/*   Created: 2021/07/10 14:42:16 by mel-hamr          #+#    #+#             */
+/*   Updated: 2021/07/16 18:25:11 by mel-hamr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Philo_bonus.h"
+#include "philo_bonus.h"
 
 void	kill_childs(t_vars *var)
 {
@@ -41,18 +41,15 @@ void	*watch_hem_die(void *arg)
 	vars = philo->vars;
 	while (1)
 	{
+		sem_wait(philo->sem_philo);
 		time = get_time();
 		if (time > philo->time_left_die)
 		{
 			sem_wait(vars->print_sem);
-			printf("%d is dead\n", philo->index);
+			printf("%ld\t%d\tdied\n", time - vars->start_time, philo->index + 1);
 			sem_post(vars->main_sem);
 		}
-		if (philo->meal_nbr == vars->nbr_must_eat)
-		{
-			if (philo->eated++ == 0)
-				sem_post(vars->eat_sem);
-		}
+		sem_post(philo->sem_philo);
 		usleep(1000);
 	}
 	return (NULL);
@@ -67,19 +64,22 @@ void	routine(t_vars *vars, t_philo *philo)
 	pthread_detach(th);
 	while (1)
 	{
-		sem_wait(vars->forks);
-		printf_text(vars, philo, "take the first fork");
-		sem_wait(vars->forks);
-		printf_text(vars, philo, "take the seconde fork");
+		lock_forks(philo, vars);
+		sem_wait(philo->sem_philo);
 		philo->time_left_die = get_time() + vars->time_to_die;
-		printf_text(vars, philo, "philo is eating");
-		usleep(vars->time_to_eat * 1000);
 		philo->meal_nbr++;
-		sem_post(vars->forks);
-		sem_post(vars->forks);
-		printf_text(vars, philo, "philo is sleeping");
+		if (philo->meal_nbr == vars->nbr_must_eat || vars->nbr_must_eat == 0)
+		{
+			if (philo->eated++ == 0)
+				sem_post(vars->eat_sem);
+		}
+		printf_text(vars, philo, "is eating");
 		usleep(vars->time_to_eat * 1000);
-		printf_text(vars, philo, "philo is thinking");
+		sem_post(philo->sem_philo);
+		unlock_forks(vars);
+		printf_text(vars, philo, "is sleeping");
+		usleep(vars->time_to_eat * 1000);
+		printf_text(vars, philo, "is thinking");
 	}
 }
 
@@ -96,7 +96,7 @@ void	*check_if_finished(void *arg)
 		i++;
 	}
 	sem_wait(vars->print_sem);
-	printf("simulation done motherfucker\n");
+	printf("simulation done \n");
 	sem_post(vars->main_sem);
 	return (NULL);
 }
